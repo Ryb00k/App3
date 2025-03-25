@@ -1,3 +1,6 @@
+using Microsoft.VisualBasic;
+using System.Data;
+using System.IO;
 namespace WinFormsApp3
 {
     public partial class Form1 : Form
@@ -40,19 +43,96 @@ namespace WinFormsApp3
             form.Show();
         }
 
+        private void ExportToCSV(DataGridView dataGridView, string filePath)
+        {
+            List<string> csvLines = new List<string>();
+
+            // Nag³ówek
+            var columnNames = dataGridView.Columns.Cast<DataGridViewColumn>()
+                                                  .Select(col => col.HeaderText);
+            csvLines.Add(string.Join(",", columnNames));
+
+            // Dane
+            foreach (DataGridViewRow row in dataGridView.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    var values = row.Cells.Cast<DataGridViewCell>()
+                                          .Select(c => c.Value?.ToString() ?? ""); // Obs³uga null
+                    csvLines.Add(string.Join(",", values));
+                }
+            }
+
+            // Zapis do pliku
+            File.WriteAllLines(filePath, csvLines);
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(GlobalVars.imie);
+            string To_delete = Interaction.InputBox("Podaj index do usuniecia");
+
+            if (int.TryParse(To_delete, out int index))
+            {
+                if (index >= 0 && index < dataGridView1.Rows.Count) {
+                    dataGridView1.Rows.RemoveAt(index);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Podaj poprawny index");
+            }
         }
+
+        private void LoadCSVToDataGridView(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show("Plik CSV nie istnieje.", "B³¹d", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string[] lines = File.ReadAllLines(filePath, System.Text.Encoding.UTF8);
+
+            if (lines.Length == 0)
+            {
+                MessageBox.Show("Plik CSV jest pusty.", "B³¹d", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            dataGridView1.Rows.Clear();
+
+            if (dataGridView1.Columns.Count == 0)
+            {
+                string[] headers = lines[0].Split(',').Select(h => h.Trim()).ToArray();
+                foreach (string header in headers)
+                {
+                    dataGridView1.Columns.Add(header, header);
+                }
+            }
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string[] values = lines[i].Split(',');
+                if (values.Length == dataGridView1.Columns.Count)
+                {
+                    dataGridView1.Rows.Add(values);
+                }
+                else
+                {
+                    MessageBox.Show($"B³¹d w linii {i + 1}: ró¿na liczba kolumn.", "B³¹d CSV", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+        }
+
 
         private void button3_Click(object sender, EventArgs e)
         {
-
+            LoadCSVToDataGridView("C:\\Users\\Maciej\\source\\repos\\App3\\Plik.csv");
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-
+            ExportToCSV(dataGridView1, "C:\\Users\\Maciej\\source\\repos\\App3\\Plik.csv");
         }
     }
 
